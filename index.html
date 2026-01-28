@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Long Image Reader</title>
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Super fast offline image reader">
+
+    <style>
+        /* Basic Reset & Dark Mode */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0d0d0d; /* Dark background for better reading */
+            color: #fff;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow-x: hidden; /* No horizontal scroll */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Container to keep image centered */
+        .viewer-container {
+            width: 100%;
+            max-width: 1000px; /* Limits width on desktop */
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* The Main Image Style */
+        #mainImage {
+            width: 100%;
+            height: auto;
+            display: block;
+            opacity: 0; /* Hidden until loaded */
+            transition: opacity 0.3s ease-in;
+            /* Rendering optimization */
+            image-rendering: -webkit-optimize-contrast;
+            -webkit-backface-visibility: hidden;
+        }
+
+        /* Loading Spinner */
+        #loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid #00e676; /* Green accent */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px auto;
+        }
+
+        .loader-text {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Install Button (Floating) */
+        #installBtn {
+            display: none; /* Hidden by default */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #00c853, #69f0ae);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4);
+            cursor: pointer;
+            z-index: 999;
+            transition: transform 0.2s;
+        }
+
+        #installBtn:active {
+            transform: scale(0.95);
+        }
+
+        #installBtn span {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <div class="loader-text" id="statusText">Downloading Image (7MB)...<br>One time only 🚀</div>
+    </div>
+
+    <!-- Image Container -->
+    <div class="viewer-container">
+        <img id="mainImage" alt="Long Document Content" />
+    </div>
+
+    <!-- Install Button -->
+    <button id="installBtn">
+        <span>📲</span> Install App
+    </button>
+
+    <script>
+        // --- 1. DYNAMIC MANIFEST FOR PWA ---
+        // Since we are in a single file, we inject the manifest dynamically
+        const manifest = {
+            "name": "Super Reader",
+            "short_name": "Reader",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#0d0d0d",
+            "theme_color": "#0d0d0d",
+            "orientation": "portrait",
+            "icons": [
+                {
+                    "src": "https://cdn-icons-png.flaticon.com/512/3143/3143460.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                },
+                {
+                    "src": "https://cdn-icons-png.flaticon.com/512/3143/3143460.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ]
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+
+
+        // --- 2. IMAGE HANDLING & CACHING (IndexedDB) ---
+        // This ensures the 7MB file is stored locally and loads instantly next time
+        const IMAGE_URL = "https://i.ibb.co/S7nnZtJ6/PDFReader-20260128-0825-01.png";
+        const DB_NAME = "ImageCacheDB";
+        const STORE_NAME = "images";
+        const IMAGE_KEY = "mainLongImage";
+
+        const imgElement = document.getElementById('mainImage');
+        const loader = document.getElementById('loader');
+        const statusText = document.getElementById('statusText');
+
+        // Initialize Database
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        async function loadImage() {
+            try {
+                const db = await openDB();
+                
+                // Check if image exists in DB
+                const tx = db.transaction(STORE_NAME, "readonly");
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get(IMAGE_KEY);
+
+                request.onsuccess = async () => {
+                    if (request.result) {
+                        // HIT: Image found in local DB!
+                        console.log("Loading from Cache (Ultra Fast)");
+                        statusText.innerText = "Loading from Storage...";
+                        const blobUrl = URL.createObjectURL(request.result);
+                        displayImage(blobUrl);
+                    } else {
+                        // MISS: Download and Save
+                        console.log("Downloading for the first time...");
+                        statusText.innerText = "Downloading (7MB)...\nDon't close.";
+                        await downloadAndCache(db);
+                    }
+                };
+            } catch (err) {
+                console.error("DB Error, falling back to network", err);
+                imgElement.src = IMAGE_URL; // Fail safe
+                displayImage(IMAGE_URL);
+            }
+        }
+
+        async function downloadAndCache(db) {
+            try {
+                const response = await fetch(IMAGE_URL);
+                const blob = await response.blob();
+                
+                // Save to DB
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                const store = tx.objectStore(STORE_NAME);
+                store.put(blob, IMAGE_KEY);
+
+                // Show Image
+                const blobUrl = URL.createObjectURL(blob);
+                displayImage(blobUrl);
+
+            } catch (err) {
+                console.error("Download failed", err);
+                statusText.innerText = "Network Error!";
+            }
+        }
+
+        function displayImage(src) {
+            imgElement.src = src;
+            imgElement.onload = () => {
+                loader.style.display = 'none'; // Hide loader
+                imgElement.style.opacity = 1; // Fade in
+            };
+        }
+
+        // Start Process
+        loadImage();
+
+
+        // --- 3. PWA INSTALL LOGIC ---
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Show our custom button
+            installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                deferredPrompt = null;
+                installBtn.style.display = 'none';
+            }
+        });
+
+        // Hide button if app is already installed/standalone
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            installBtn.style.display = 'none';
+        }
+
+    </script>
+</body>
+</html>
+
