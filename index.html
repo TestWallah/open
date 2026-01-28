@@ -1,259 +1,199 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>HD Docs Reader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#000000">
-    <meta name="mobile-web-app-capable" content="yes">
+    <title>Super Fast Gallery</title>
     
+    <!-- PWA Manifest (Data URI for Single File Compatibility) -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"SuperGallery","short_name":"Gallery","start_url":".","display":"standalone","background_color":"#000000","theme_color":"#000000","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/104/104646.png","sizes":"512x512","type":"image/png"}]}'>
+
     <style>
-        /* --- 1. SETTINGS FOR FULL SCREEN & DARK MODE --- */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        /* Reset and Basic Setup */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
-            background-color: #000; /* Pitch black for focus */
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            overflow-x: hidden;
+            background-color: #000000; /* Dark background for premium feel */
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
         }
 
-        /* Container for the 8 Slices */
-        #viewer {
+        /* Image Container */
+        .gallery-container {
             width: 100%;
-            max-width: 100%; /* Full Mobile Width */
+            max-width: 800px; /* Limits width on desktop, full on mobile */
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
         }
 
-        /* Each Slice Canvas */
-        canvas {
-            width: 100%; /* Fit to mobile screen width */
+        /* Image Styling */
+        .gallery-image {
+            width: 100%;
             height: auto;
-            display: block;
-            /* Sharp rendering */
-            image-rendering: -webkit-optimize-contrast; 
+            display: block; /* Removes bottom space under images */
+            object-fit: contain;
+            /* Fade in effect */
+            opacity: 0;
+            animation: fadeIn 0.5s ease-in forwards;
         }
 
-        /* --- 2. LOADER DESIGN --- */
-        #loader {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #333;
-            border-top: 4px solid #00ff88;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 15px;
-        }
-
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        #status {
-            font-family: sans-serif;
-            font-size: 14px;
-            color: #00ff88;
-            text-align: center;
-        }
-
-        /* --- 3. CUSTOM INSTALL BUTTON --- */
+        /* Install Button Styling */
         #installBtn {
-            display: none;
             position: fixed;
-            bottom: 25px;
-            right: 25px;
-            background: #00ff88;
-            color: #000;
-            font-weight: 900;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #ff0055, #ff5500);
+            color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 30px;
-            font-size: 14px;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-            z-index: 999;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            transition: transform 0.2s;
+            backdrop-filter: blur(5px);
         }
+
+        #installBtn:active {
+            transform: scale(0.95);
+        }
+
+        #installBtn span {
+            margin-right: 8px;
+        }
+        
+        /* Loading Text (Optional, hidden fast) */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #333;
+        }
+
     </style>
 </head>
 <body>
 
-    <!-- Loader Screen -->
-    <div id="loader">
-        <div class="spinner"></div>
-        <div id="status">Starting Engine...</div>
+    <div class="gallery-container">
+        <!-- Image 1 (Priority Load) -->
+        <img src="https://i.ibb.co/BDNd6z3/10-1-295088995579817.jpg" 
+             alt="Image 1" 
+             class="gallery-image" 
+             decoding="async">
+
+        <!-- Image 2 (Priority Load) -->
+        <img src="https://i.ibb.co/HDgsqzKw/10-2-295089094392564.jpg" 
+             alt="Image 2" 
+             class="gallery-image" 
+             decoding="async">
+
+        <!-- Image 3 -->
+        <img src="https://i.ibb.co/0p6LVzCn/10-3-295089146043733.jpg" 
+             alt="Image 3" 
+             class="gallery-image" 
+             loading="lazy" 
+             decoding="async">
+
+        <!-- Image 4 -->
+        <img src="https://i.ibb.co/qYpZ6jCN/10-4-295089181771032.jpg" 
+             alt="Image 4" 
+             class="gallery-image" 
+             loading="lazy" 
+             decoding="async">
+
+        <!-- Image 5 -->
+        <img src="https://i.ibb.co/yF7tZvnF/10-5-295089232711083.jpg" 
+             alt="Image 5" 
+             class="gallery-image" 
+             loading="lazy" 
+             decoding="async">
+
+        <!-- Image 6 -->
+        <img src="https://i.ibb.co/20fScNqW/10-6-295089274231489.jpg" 
+             alt="Image 6" 
+             class="gallery-image" 
+             loading="lazy" 
+             decoding="async">
+
+        <!-- Image 7 -->
+        <img src="https://i.ibb.co/M5fbQPdy/10-7-295089310353323.jpg" 
+             alt="Image 7" 
+             class="gallery-image" 
+             loading="lazy" 
+             decoding="async">
+
+        <!-- Image 8 -->
+        <img src="https://i.ibb.co/fVBCY5Sh/10-8-295089366921812.jpg" 
+             alt="Image 8" 
+             class="gallery-image" 
+             loading="lazy" 
+             decoding="async">
     </div>
 
-    <!-- Images will be injected here -->
-    <div id="viewer"></div>
-
-    <!-- PWA Install Button -->
-    <button id="installBtn">⬇ Install App</button>
+    <!-- Custom Install Button -->
+    <button id="installBtn">
+        <span>🔥</span> Install App
+    </button>
 
     <script>
-        // --- CONFIGURATION ---
-        // Image URL (The long 7MB file)
-        const SOURCE_IMAGE_URL = "https://i.ibb.co/S7nnZtJ6/PDFReader-20260128-0825-01.png";
-        const TOTAL_SLICES = 8; // Hum isko 8 hisso mein kaatenge
-        
-        // Caching Setup
-        const DB_NAME = "HDSplitDB";
-        const STORE_NAME = "raw_image";
-        const KEY = "master_file";
-
-        const loader = document.getElementById('loader');
-        const status = document.getElementById('status');
-        const viewer = document.getElementById('viewer');
-
-        // --- 1. INDEXED DB (Storage Logic) ---
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, 1);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-                };
-                req.onsuccess = (e) => resolve(e.target.result);
-                req.onerror = (e) => reject(e);
-            });
-        }
-
-        // --- 2. MAIN LOGIC: Load -> Slice -> Display ---
-        async function init() {
-            try {
-                const db = await openDB();
-                const tx = db.transaction(STORE_NAME, "readonly");
-                const store = tx.objectStore(STORE_NAME);
-                const req = store.get(KEY);
-
-                req.onsuccess = async () => {
-                    if (req.result) {
-                        // Found in Cache
-                        status.innerText = "Loading Offline...";
-                        processImage(req.result);
-                    } else {
-                        // Download Fresh
-                        status.innerText = "Downloading (7MB)...\nWait karo...";
-                        downloadAndSave(db);
-                    }
-                };
-            } catch (e) {
-                console.error(e);
-                status.innerText = "Error!";
-            }
-        }
-
-        async function downloadAndSave(db) {
-            try {
-                const resp = await fetch(SOURCE_IMAGE_URL);
-                const blob = await resp.blob();
-
-                // Save to DB
-                const tx = db.transaction(STORE_NAME, "readwrite");
-                tx.objectStore(STORE_NAME).put(blob, KEY);
-
-                processImage(blob);
-            } catch (e) {
-                status.innerText = "Download Failed.\nCheck Internet.";
-            }
-        }
-
-        // --- 3. THE MAGIC: Slicing the Image ---
-        function processImage(blob) {
-            status.innerText = "Optimizing Quality...";
-            const url = URL.createObjectURL(blob);
-            const img = new Image();
-            
-            img.onload = () => {
-                // Calculate height of each slice
-                const sliceHeight = Math.floor(img.height / TOTAL_SLICES);
-                const width = img.width;
-
-                // Create 8 Canvases
-                for (let i = 0; i < TOTAL_SLICES; i++) {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-
-                    // Set canvas size to match the slice exactly (Full HD)
-                    canvas.width = width;
-                    canvas.height = sliceHeight;
-
-                    // Draw only the specific part of the image
-                    // sourceImage, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight
-                    ctx.drawImage(img, 0, i * sliceHeight, width, sliceHeight, 0, 0, width, sliceHeight);
-
-                    // Add to screen
-                    viewer.appendChild(canvas);
-                }
-
-                // Cleanup & Animation
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                    URL.revokeObjectURL(url);
-                }, 500);
-            };
-
-            img.src = url;
-        }
-
-        // Start
-        init();
-
-        // --- 4. PWA INSTALLER ---
-        // Dynamic Manifest Injection
-        const manifest = {
-            "name": "Quick Reader",
-            "short_name": "Reader",
-            "display": "standalone",
-            "background_color": "#000000",
-            "theme_color": "#000000",
-            "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2983/2983067.png", "sizes": "512x512", "type": "image/png" }]
-        };
-        const link = document.createElement('link');
-        link.rel = 'manifest';
-        link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: 'application/json'}));
-        document.head.appendChild(link);
-
-        // Install Button Logic
+        // --- PWA INSTALL LOGIC ---
         let deferredPrompt;
-        const btn = document.getElementById('installBtn');
+        const installBtn = document.getElementById('installBtn');
 
+        // Check if the browser supports PWA installation
         window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
             e.preventDefault();
+            // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            btn.style.display = 'block';
+            // Update UI to notify the user they can add to home screen
+            installBtn.style.display = 'block';
         });
 
-        btn.addEventListener('click', async () => {
+        installBtn.addEventListener('click', (e) => {
+            // Hide our user interface that shows our A2HS button
+            installBtn.style.display = 'none';
+            // Show the prompt
             if (deferredPrompt) {
                 deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    btn.style.display = 'none';
-                }
-                deferredPrompt = null;
+                // Wait for the user to respond to the prompt
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the A2HS prompt');
+                    } else {
+                        console.log('User dismissed the A2HS prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                // Fallback for browsers (like Safari) that don't support beforeinstallprompt
+                alert('App install karne ke liye browser menu (⋮ ya Share icon) me jake "Add to Home Screen" select karein! 🔥');
             }
         });
 
-        // Hide if already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            btn.style.display = 'none';
+        // --- CACHE OPTIMIZATION TRICK ---
+        // Browser automatically caches images, but we ensure they stay alive
+        if ('serviceWorker' in navigator) {
+            // Normally we would register a SW here, but since this is a single file,
+            // we rely on standard browser caching headers which are very strong for images.
+            console.log("Service Worker supported (Needs external file for full offline mode)");
         }
     </script>
+
 </body>
 </html>
-
 
